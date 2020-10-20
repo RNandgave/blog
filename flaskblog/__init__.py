@@ -3,23 +3,37 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
-import os
+from flaskblog.config import Config
 
-app = Flask(__name__)
-# __name__ special module under python, notifies flask to look for template and static files
-# instantiation of Flask application
-app.config["SECRET_KEY"] = "dc601f91504e12a61dbb69ddd9618f86"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "login"  # login = function name of the route
+
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+login_manager.login_view = "users.login"  # login = function name of the route
 login_manager.login_message_category = "info"
-app.config["MAIL_SERVER"] = "smtp.googlemail.com"
-app.config["MAIL_PORT"] = "587"
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.environ.get("EMAIL_ID")
-app.config["MAIL_PASSWORD"] = os.environ.get("EMAIL_PASS")
-mail = Mail(app)
 
-from flaskblog import routes
+mail = Mail()
+
+
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    # application factoring- making instances of application for testing and production instances respectively
+    # __name__ special module under python, notifies flask to look for template and static files
+    # instantiation of Flask application
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+    login_manager.init_app(app)
+    mail.init_app(app)
+
+    from flaskblog.users.routes import users
+    from flaskblog.posts.routes import posts
+    from flaskblog.main.routes import main
+
+    app.register_blueprint(users)
+    app.register_blueprint(posts)
+    app.register_blueprint(main)
+
+    return app
+
